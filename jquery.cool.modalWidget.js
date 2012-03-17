@@ -1,7 +1,7 @@
 /**
  * cool.modalWidget
  * @author: Paris Theofanidis (ptheofan@gmail.com)
- * @source: git@github.com:ptheofan/cool.modal.widget.git
+ * @source: git@github.com:ptheofan/cool.modalWidget.git
  * 
  * Will convert a div to modal popup (but it's not a dialog).
  * This is based on the CSS facebook (which appearently 'borrowed' it from google)
