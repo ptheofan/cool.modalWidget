@@ -12,15 +12,16 @@
  * to publish them (under your name of course) with the widget
  * 
  * It beats jDialog because
- *  1. It's hellable lighter
- *  2. Aligns itself at screen center ALWAYS (with pure css!) (unline my jDialog extension that uses js)
- *  3. Will prevent the user from scrolling the contents behind the modal (really neat)
- *  4. Allows the user to scroll over the modal if it's larger than his screen
- *  5. Allows you to easily modify its content after it has been initialized (similar to my jDialog extension)
- *  6. Allows you to easily modify ANY css attribute of the elements that will wrap your div
- *  7. Can be configured to automaticall destroy your element on close
- *  8. Has an event for pretty much everything :D
- *  9. Does NOT restrict your modal layout in any way (no title, no X button, no nothing!) :)
+ *   1. It's hellable lighter
+ *   2. Aligns itself at screen center ALWAYS (with pure css!) (unline my jDialog extension that uses js)
+ *   3. Will prevent the user from scrolling the contents behind the modal (really neat)
+ *   4. Allows the user to scroll over the modal if it's larger than his screen
+ *   5. Allows you to easily modify its content after it has been initialized (similar to my jDialog extension)
+ *   6. Allows you to easily modify ANY css attribute of the elements that will wrap your div
+ *   7. Can be configured to automaticall destroy your element on close
+ *   8. Has an event for pretty much everything :D
+ *   9. Does NOT restrict your modal layout in any way (no title, no X button, no nothing!) :)
+ *  10. It can mimic the layout of jDialog allowing you use the most important aspects of it for styling
  *  
  *  Configuration Options
  *    autoOpen: false
@@ -73,6 +74,24 @@
             // Destroy the widget when modal is closed (will chain with closeOnEscape and destroyElement)
             destroyOnClose: false,
             
+            // Mimic the jDialog divs layout
+            mimicJDialog: false,
+            
+            
+            // Classes to attach to the respective div
+            classes: {
+                blocker: null,
+                positioner: null,
+                holder: null,
+                alignment: null,
+                container: null,
+
+                jDialogDialog: 'ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable',
+                jDialogTitle: 'ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix',
+                jDialogTitleSpan: 'ui-dialog-title',
+                jDialogTitleClose: 'ui-dialog-titlebar-close ui-corner-all',
+                jDialogTitleCloseSpan: 'ui-icon ui-icon-closethick'
+            },
             
             // The CSS that is applied to the divs that will contain the element
             css: {
@@ -84,7 +103,25 @@
                     'right': '0px',
                     'overflow': 'hidden',
                     'z-index': '1200',
-                    'background-color': 'rgba(0,0,0,.85)',
+                    'background-color': 'black',
+                    'opacity': 0.84,
+                    '-ms-filter': '"progid:DXImageTransform.Microsoft.Alpha(Opacity=84)"',
+                    'filter': 'alpha(opacity=84)',
+                    '-moz-opacity': 0.84,
+                    '-khtml-opacity': 0.84,
+//                    'background': 'URL(/css/bg1.png) repeat',
+                    'display': 'none'
+                },
+                
+                positioner: {
+                    'position': 'fixed',
+                    'top': '0px',
+                    'left': '0px',
+                    'bottom': '0px',
+                    'right': '0px',
+                    'overflow': 'hidden',
+                    'z-index': '1200',
+                    'background-color': 'transparent',
                     'overflow-y': 'scroll',
                     'display': 'none'
                 },
@@ -108,6 +145,7 @@
                     'position': 'relative',
                     'display': 'inline-block',
                     'outline': 'none',
+                    'z-index': '1201',
                     'text-align': 'left'
                 }
             }
@@ -115,25 +153,60 @@
         
         // Divs we wrap around element
         _blocker: null,
+        _positioner: null,
         _holder: null,
         _alignment: null,
         _container: null,
+        _dialogFakeTitle: null,
         _bodyOldOverflowX: null,
         _bodyOldOverflowY: null,
 
         
         _create: function() {
             this._self = this;
-            this._blocker = $('<div/>').css(this.options.css.blocker);
-            this._holder = $('<div/>').css(this.options.css.holder);
-            this._alignment = $('<div/>').css(this.options.css.alignment);
-            this._container = $('<div/>').css(this.options.css.container);
+            this._blocker = $('<div>').css(this.options.css.blocker).addClass(this.options.classes.blocker);
+            this._positioner = $('<div>').css(this.options.css.positioner).addClass(this.options.classes.positioner);
+            this._holder = $('<div>').css(this.options.css.holder).addClass(this.options.classes.holder);
+            this._alignment = $('<div>').css(this.options.css.alignment).addClass(this.options.classes.alignment);
+            this._container = $('<div>').css(this.options.css.container).addClass(this.options.classes.container);
             
             // Nest the divs and grab the element
-            this._blocker.append(this._holder.append(this._alignment.append(this._container.wrapInner(this.element))));
-            
+            this._positioner.append(this._holder.append(this._alignment.append(this._container.wrapInner(this.element))));
+
+
+            // Add the divs and classes needed to make this modal appear as jDialog modal
+            if (this.options.mimicJDialog) {
+                this._container.addClass(this.options.classes.jDialogDialog).attr({
+                    role: 'dialog',
+                    tabIndex: -1,
+                    'aria-labelledby': 'ui-dialog-title-modalContent'
+                });
+                this._dialogFakeTitle = $('<div>')
+                    .addClass(this.options.classes.jDialogTitle)
+                    .append($('<span>')
+                        .addClass(this.options.classes.jDialogTitleSpan)
+                        .html(this.element.attr('title'))
+                    )
+                    .append($('<a href="#" role="button">')
+                        .addClass(this.options.classes.jDialogTitleClose)
+                        .append($('<span>close</span>')
+                            .addClass(this.options.classes.jDialogTitleCloseSpan)
+                        )
+                        .on('click', $.proxy(this.close, this))
+                        .hover(function(evt){
+                            $(this).addClass('ui-state-hover');
+                        }, function(evt){
+                            $(this).removeClass('ui-state-hover');
+                        })
+                    );
+
+                this._container.prepend(this._dialogFakeTitle);
+            }
+
+
             // Append to body
             $('body').append(this._blocker);
+            $('body').append(this._positioner);
         },
         
         
@@ -149,13 +222,14 @@
          */
         open: function() {
             if (this._trigger('beforeOpen')) {
+                this._positioner.css({'display': 'block'});
                 this._blocker.css({'display': 'block'});
                 this._bodyOldOverflowX = $('body').css('overflow-x');
                 this._bodyOldOverflowY = $('body').css('overflow-y');
                 $('body').css({'overflow': 'hidden'});
                 if (this.options.closeOnEscape === true) {
                     var self = this;
-                    this._blocker.attr('tabIndex', -1).css('outline', 0).keydown(function(evt) {
+                    this._positioner.attr('tabIndex', -1).css('outline', 0).keydown(function(evt) {
                         if (self.options.closeOnEscape && !evt.isDefaultPrevented() && evt.keyCode && evt.keyCode === $.ui.keyCode.ESCAPE) {
                             self.close(evt);
                             evt.preventDefault();
@@ -173,11 +247,12 @@
         close: function(evt) {
             if (this._trigger('beforeClose', evt)) {
                 if (this.options.closeOnEscape === true) {
-                    this._blocker.unbind('keypress');
+                    this._positioner.unbind('keypress');
                 }
                 if (this.options.destroyOnClose === true) {
                     this.destroy();
                 } else {
+                    this._positioner.css({'display': 'none'});
                     this._blocker.css({'display': 'none'});
                     $('body').css({'overflow-x': this._bodyOldOverflowX, 'overflow-y': this._bodyOldOverflowY});
                     this._trigger('afterClose');
@@ -211,7 +286,7 @@
                 }
 
                 // Destroy blocker and everything in it
-                this._blocker.remove();
+                this._positioner.remove();
             }
         }
     });
