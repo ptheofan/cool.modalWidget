@@ -71,6 +71,9 @@
             // Dismiss modal on escape
             closeOnEscape: false,
 
+            // Dismiss modal if user clicks outside it
+            closeOnClickOutside: false,
+
             // Destroy the widget when modal is closed (will chain with closeOnEscape and destroyElement)
             destroyOnClose: false,
 
@@ -166,12 +169,16 @@
             this._blocker = $('<div>').css(this.options.css.blocker).addClass(this.options.classes.blocker);
             this._positioner = $('<div>').css(this.options.css.positioner).addClass(this.options.classes.positioner);
             this._holder = $('<div>').css(this.options.css.holder).addClass(this.options.classes.holder);
-            this._alignment = $('<div>').css(this.options.css.alignment).addClass(this.options.classes.alignment);
-            this._container = $('<div>').css(this.options.css.container).addClass(this.options.classes.container);
+            this._alignment = $('<div>').css(this.options.css.alignment).addClass(this.options.classes.alignment).addClass('outside-click-capture');
+            this._container = $('<div>').css(this.options.css.container).addClass(this.options.classes.container).addClass('inside-click-capture');
+
+            if (this._blocker.closeOnClickOutside == true) {
+                this._alignment.addClass('outside-click-capture');
+                this._container.addClass('inside-click-capture');
+            }
 
             // Nest the divs and grab the element
             this._positioner.append(this._holder.append(this._alignment.append(this._container.wrapInner(this.element))));
-
 
             // Add the divs and classes needed to make this modal appear as jDialog modal
             if (this.options.mimicJDialog) {
@@ -206,6 +213,24 @@
             // Append to body
             $('body').append(this._blocker);
             $('body').append(this._positioner);
+
+            // Handle click outside case
+            if (this.options.closeOnClickOutside == true) {
+                $('.outside-click-capture').click($.proxy(function(evt) {
+                    if (this.insideClickCaptured === true) {
+                        this.insideClickCaptured = false;
+                    } else {
+                        this._clickedOutside();
+                    }
+                }, this));
+                $('.inside-click-capture').click($.proxy(function(evt) {
+                    this.insideClickCaptured = true;
+                }, this));
+            }
+        },
+
+        _clickedOutside: function() {
+            this.close();
         },
 
 
